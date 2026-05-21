@@ -101,6 +101,13 @@
 <body>
   <div class="bg-ambient"></div>
 
+  <!-- Mobile Top Bar -->
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+    <div class="mobile-logo">🌟 KidsTrack</div>
+    <div style="width: 40px;"></div>
+  </div>
+
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -289,6 +296,11 @@
       window.location.href = 'index.html';
     }
 
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('open');
+    }
+
     function switchTab(tab) {
       activeTab = tab;
       const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
@@ -309,6 +321,9 @@
         document.getElementById('parent-header-subtitle').textContent = 'Laporan perilaku, sikap, dan evaluasi langsung dari guru kelas.';
         renderParentFeed();
       }
+
+      // Close sidebar on mobile
+      document.querySelector('.sidebar').classList.remove('open');
     }
 
     function updateUnreadNotifBadge() {

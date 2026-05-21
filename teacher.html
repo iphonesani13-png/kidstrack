@@ -128,6 +128,13 @@
 <body>
   <div class="bg-ambient"></div>
 
+  <!-- Mobile Top Bar -->
+  <div class="mobile-top-bar">
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+    <div class="mobile-logo">🌟 KidsTrack</div>
+    <div style="width: 40px;"></div>
+  </div>
+
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -617,6 +624,11 @@
     }
 
     // Navigation sections
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('open');
+    }
+
     function switchMainTab(section) {
       currentMainSection = section;
       const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
@@ -641,6 +653,9 @@
         document.getElementById('header-actions').style.display = 'none';
         loadBulkAttendance();
       }
+
+      // Close sidebar on mobile
+      document.querySelector('.sidebar').classList.remove('open');
     }
 
     // Tab switches for selected student

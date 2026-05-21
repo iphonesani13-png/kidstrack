@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KidsTrack — Dashboard Orang Tua</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Custom parent styling overrides */
+    .parent-profile {
+      margin-top: auto;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .parent-profile-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .parent-profile-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-logout {
+      color: var(--clr-coral);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--transition);
+    }
+    .btn-logout:hover { opacity: 0.8; }
+    .summary-card {
+      background: var(--grad-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+    .notif-badge-new {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      background: var(--clr-coral-light);
+      color: var(--clr-coral);
+      border: 1px solid rgba(255,123,123,0.3);
+      font-weight: bold;
+    }
+    .parent-feed-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+      background: var(--bg-glass);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .parent-feed-item:hover {
+      border-color: rgba(255,255,255,0.12);
+      background: var(--bg-glass-strong);
+    }
+    .unread-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--clr-coral);
+      position: absolute;
+      top: 24px;
+      right: 20px;
+      box-shadow: var(--shadow-glow);
+    }
+    .parent-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .parent-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-ambient"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🌟</div>
+      <span class="sidebar-logo-text">KidsTrack</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Orang Tua Murid</div>
+      <div class="nav-item active" onclick="switchTab('dashboard')">
+        <span class="nav-item-icon">📈</span>
+        <span>Perkembangan</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('feed')">
+        <span class="nav-item-icon">💬</span>
+        <span>Laporan Guru</span>
+        <span class="notif-dot" id="unread-dot" style="display: none; margin-left: auto;"></span>
+      </div>
+    </nav>
+
+    <!-- Parent Profile Box -->
+    <div class="parent-profile" id="parent-profile-box">
+      <div class="avatar-placeholder" id="parent-avatar" style="width: 36px; height: 36px; background: var(--clr-mint);">O</div>
+      <div class="parent-profile-info">
+        <div class="parent-profile-name" id="parent-name">Nama Wali</div>
+        <div class="parent-profile-role" id="child-name-display">Anak: Loading...</div>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()" title="Keluar">🚪</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="parent-header-title">Perkembangan Anak</h1>
+        <p class="page-subtitle" id="parent-header-subtitle">Pantau kehadiran, tugas, dan milestone prestasi anak Anda di sini.</p>
+      </div>
+      <div>
+        <div class="flex items-center gap-4 glass-card" style="padding: 8px 16px; border-radius: var(--radius-full);">
+          <span style="font-size: 1.5rem;" id="child-avatar">🧒</span>
+          <div>
+            <div style="font-weight: 800; font-size: 0.88rem;" id="child-display-name">Loading Student</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="child-display-class">Kelas -</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: DASHBOARD ANALYTICS OVERVIEW -->
+    <div id="section-dashboard" class="parent-grid fade-in">
+      <!-- Left side: Stats & Visuals -->
+      <div class="flex flex-col gap-6">
+        <!-- Stats summary row -->
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="stat-card primary">
+            <div class="stat-icon" style="background: rgba(124, 111, 247, 0.15);">📋</div>
+            <div class="stat-value" id="stat-completed-tasks">0/0</div>
+            <div class="stat-label">Tugas Terselesaikan</div>
+          </div>
+          <div class="stat-card mint">
+            <div class="stat-icon" style="background: rgba(0, 210, 168, 0.15);">📅</div>
+            <div class="stat-value" id="stat-att-rate">0%</div>
+            <div class="stat-label font-bold">Rata-rata Kehadiran</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-icon" style="background: rgba(255, 181, 71, 0.15);">🏆</div>
+            <div class="stat-value" id="stat-milestones-earned">0</div>
+            <div class="stat-label">Milestone Dicapai</div>
+          </div>
+        </div>
+
+        <!-- Attendance Stats Graph -->
+        <div class="summary-card">
+          <div class="section-header">
+            <span class="section-title">📊 Visualisasi Absensi</span>
+            <span class="badge badge-mint" id="att-badge-label">Sangat Baik</span>
+          </div>
+          <div class="flex gap-8 items-center" style="margin-top: 16px;">
+            <div style="flex: 1;">
+              <canvas id="att-donut-canvas" style="display: block; max-width: 130px; margin: 0 auto;"></canvas>
+            </div>
+            <div style="flex: 2; display: flex; flex-direction: column; gap: 10px;">
+              <div class="flex justify-between items-center" style="font-size: 0.85rem;">
+                <span class="flex items-center gap-4"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--clr-mint);"></span> Hadir</span>
+                <strong id="donut-lbl-hadir">0 Hari</strong>
+              </div>
+              <div class="flex justify-between items-center" style="font-size: 0.85rem;">
+                <span class="flex items-center gap-4"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--clr-amber);"></span> Izin</span>
+                <strong id="donut-lbl-izin">0 Hari</strong>
+              </div>
+              <div class="flex justify-between items-center" style="font-size: 0.85rem;">
+                <span class="flex items-center gap-4"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--clr-sky);"></span> Sakit</span>
+                <strong id="donut-lbl-sakit">0 Hari</strong>
+              </div>
+              <div class="flex justify-between items-center" style="font-size: 0.85rem;">
+                <span class="flex items-center gap-4"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--clr-coral);"></span> Alpha</span>
+                <strong id="donut-lbl-alpha">0 Hari</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task / Homework Status -->
+        <div class="summary-card">
+          <div class="section-header" style="margin-bottom: 18px;">
+            <span class="section-title">📝 Daftar Tugas Terkini</span>
+          </div>
+          <div class="stagger-children" id="parent-tasks-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Render task rows -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Milestones / Badges & Calendar -->
+      <div class="flex flex-col gap-6">
+        <!-- Calendar Grid -->
+        <div class="summary-card">
+          <div class="section-header" style="margin-bottom: 16px;">
+            <span class="section-title">📅 Kalender Kehadiran (Bulan Ini)</span>
+          </div>
+          <div class="calendar-grid" id="parent-attendance-calendar">
+            <!-- Dynamic calendar slots -->
+          </div>
+        </div>
+
+        <!-- Unlocked Milestones / Badges -->
+        <div class="summary-card">
+          <div class="section-header" style="margin-bottom: 16px;">
+            <span class="section-title">🏆 Badge Penghargaan Anak</span>
+          </div>
+          <div class="stagger-children" id="parent-milestones-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Milestones rendered -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: GURU FEED / BEHAVIORAL LATEST REPORTS -->
+    <div id="section-feed" class="fade-in" style="display: none;">
+      <div class="stagger-children" id="parent-feed-container" style="max-width: 800px; margin: 0 auto;">
+        <!-- Guru notes feed -->
+      </div>
+    </div>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/charts.js"></script>
+  <script>
+    let currentUser = null;
+    let childData = null;
+    let activeTab = 'dashboard';
+
+    document.addEventListener("DOMContentLoaded", () => {
+      currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'orang_tua') {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Read linked child profile
+      childData = getStudentById(currentUser.childId);
+      if (!childData) {
+        alert("Profil anak tidak ditemukan atau belum ditautkan oleh Guru.");
+        handleLogout();
+        return;
+      }
+
+      // Display Sidebar Profiles
+      document.getElementById('parent-name').textContent = currentUser.name;
+      document.getElementById('parent-avatar').textContent = getInitials(currentUser.name);
+      document.getElementById('child-name-display').textContent = `Anak: ${childData.name}`;
+
+      // Display Header Child badge
+      document.getElementById('child-avatar').textContent = childData.avatar || '🧒';
+      document.getElementById('child-display-name').textContent = childData.name;
+      document.getElementById('child-display-class').textContent = `${childData.kelas} • Usia ${childData.usia} Th`;
+
+      // Render tab data
+      renderParentDashboard();
+      updateUnreadNotifBadge();
+    });
+
+    function handleLogout() {
+      logout();
+      window.location.href = 'index.html';
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+      navItems.forEach(item => item.classList.remove('active'));
+      
+      const idx = tab === 'dashboard' ? 0 : 1;
+      navItems[idx].classList.add('active');
+
+      document.getElementById('section-dashboard').style.display = tab === 'dashboard' ? 'grid' : 'none';
+      document.getElementById('section-feed').style.display = tab === 'feed' ? 'block' : 'none';
+
+      if (tab === 'dashboard') {
+        document.getElementById('parent-header-title').textContent = 'Perkembangan Anak';
+        document.getElementById('parent-header-subtitle').textContent = 'Pantau kehadiran, tugas, dan milestone prestasi anak Anda di sini.';
+        renderParentDashboard();
+      } else {
+        document.getElementById('parent-header-title').textContent = 'Laporan Catatan Guru';
+        document.getElementById('parent-header-subtitle').textContent = 'Laporan perilaku, sikap, dan evaluasi langsung dari guru kelas.';
+        renderParentFeed();
+      }
+    }
+
+    function updateUnreadNotifBadge() {
+      const unreadCount = getUnreadNoteCount(childData.id);
+      const dot = document.getElementById('unread-dot');
+      if (unreadCount > 0) {
+        dot.style.display = 'block';
+      } else {
+        dot.style.display = 'none';
+      }
+    }
+
+    function renderParentDashboard() {
+      // 1. Completed Tasks Summary
+      const taskSum = getTaskSummary(childData.id);
+      document.getElementById('stat-completed-tasks').textContent = `${taskSum.selesai}/${taskSum.total}`;
+
+      // 2. Attendance Summary
+      const attSum = getAttendanceSummary(childData.id);
+      document.getElementById('stat-att-rate').textContent = `${attSum.pct}%`;
+      
+      const badgeLabel = document.getElementById('att-badge-label');
+      if (attSum.pct >= 90) {
+        badgeLabel.textContent = 'Sangat Baik';
+        badgeLabel.className = 'badge badge-mint';
+      } else if (attSum.pct >= 75) {
+        badgeLabel.textContent = 'Cukup';
+        badgeLabel.className = 'badge badge-amber';
+      } else {
+        badgeLabel.textContent = 'Perlu Perhatian';
+        badgeLabel.className = 'badge badge-coral';
+      }
+
+      // Draw Donut Chart
+      setTimeout(() => {
+        drawDonutChart('att-donut-canvas', [
+          { label: 'Hadir', value: attSum.hadir, color: '#00D2A8' },
+          { label: 'Izin', value: attSum.izin, color: '#FFB547' },
+          { label: 'Sakit', value: attSum.sakit, color: '#4FC3F7' },
+          { label: 'Alpha', value: attSum.alpha, color: '#FF7B7B' }
+        ], 120);
+      }, 50);
+
+      document.getElementById('donut-lbl-hadir').textContent = `${attSum.hadir} Hari`;
+      document.getElementById('donut-lbl-izin').textContent = `${attSum.izin} Hari`;
+      document.getElementById('donut-lbl-sakit').textContent = `${attSum.sakit} Hari`;
+      document.getElementById('donut-lbl-alpha').textContent = `${attSum.alpha} Hari`;
+
+      // 3. Milestones count
+      const miles = getMilestones(childData.id);
+      document.getElementById('stat-milestones-earned').textContent = miles.length;
+
+      // 4. Render recent Tasks (limit to 3 for summary view)
+      const taskContainer = document.getElementById('parent-tasks-list');
+      taskContainer.innerHTML = '';
+      const allTasks = getTasks(childData.id).slice(0, 3);
+
+      if (allTasks.length === 0) {
+        taskContainer.innerHTML = `<div class="empty-state-text">Belum ada tugas tercatat.</div>`;
+      } else {
+        allTasks.forEach(t => {
+          const badge = getStatusBadge(t.status);
+          const tr = document.createElement('div');
+          tr.style.display = 'flex';
+          tr.style.justifyContent = 'space-between';
+          tr.style.alignItems = 'center';
+          tr.style.padding = '12px';
+          tr.style.background = 'var(--bg-glass)';
+          tr.style.border = '1px solid var(--border)';
+          tr.style.borderRadius = '8px';
+          tr.innerHTML = `
+            <div>
+              <div style="font-weight: 700; font-size: 0.88rem;">${t.judul}</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Mapel: ${t.mapel} | Due: ${formatDateShort(t.dueDate)}</div>
+            </div>
+            <span class="badge ${badge.cls}" style="font-size: 0.7rem; padding: 2px 8px;">${badge.label}</span>
+          `;
+          taskContainer.appendChild(tr);
+        });
+      }
+
+      // 5. Render Milestones list (limit to 3)
+      const milesContainer = document.getElementById('parent-milestones-list');
+      milesContainer.innerHTML = '';
+      const earnedMilestones = getMilestones(childData.id).slice(0, 3);
+
+      if (earnedMilestones.length === 0) {
+        milesContainer.innerHTML = `<div class="empty-state-text">Belum ada badge diraih.</div>`;
+      } else {
+        earnedMilestones.forEach(m => {
+          const card = document.createElement('div');
+          card.style.display = 'flex';
+          card.style.alignItems = 'center';
+          card.style.gap = '12px';
+          card.style.padding = '10px 14px';
+          card.style.background = 'var(--bg-glass)';
+          card.style.border = '1px solid var(--border)';
+          card.style.borderRadius = '8px';
+          card.innerHTML = `
+            <span style="font-size: 1.5rem;">${m.emoji}</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.85rem;">${m.judul}</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">Diraih: ${formatDateShort(m.tanggal)}</div>
+            </div>
+          `;
+          milesContainer.appendChild(card);
+        });
+      }
+
+      // 6. Draw attendance calendar
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const calGrid = document.getElementById('parent-attendance-calendar');
+      calGrid.innerHTML = '';
+
+      const daysShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      daysShort.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'calendar-day-header';
+        h.textContent = d;
+        calGrid.appendChild(h);
+      });
+
+      const year = 2026;
+      const month = 4; // May
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const em = document.createElement('div');
+        em.className = 'calendar-day empty';
+        calGrid.appendChild(em);
+      }
+
+      const rawAtt = getAttendance(childData.id);
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const attItem = rawAtt.find(a => a.tanggal === dateStr);
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        dayEl.style.cursor = 'default';
+        dayEl.textContent = day;
+
+        if (attItem) {
+          dayEl.classList.add(attItem.status);
+          dayEl.title = `Status: ${attItem.status.toUpperCase()} ${attItem.catatan ? `(${attItem.catatan})` : ''}`;
+        }
+        
+        // Highlight today
+        const today = new Date();
+        if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day) {
+          dayEl.classList.add('today');
+        }
+
+        calGrid.appendChild(dayEl);
+      }
+    }
+
+    function renderParentFeed() {
+      const container = document.getElementById('parent-feed-container');
+      container.innerHTML = '';
+
+      const notes = getNotes(childData.id);
+
+      if (notes.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-state-icon">💬</span>
+            <div class="empty-state-text">Belum ada catatan atau laporan perkembangan dari Guru.</div>
+          </div>
+        `;
+        return;
+      }
+
+      notes.forEach(n => {
+        const color = getKategoriColor(n.kategori);
+        const card = document.createElement('div');
+        card.className = 'parent-feed-item';
+        card.style.borderLeft = `4px solid var(--clr-${color})`;
+        
+        // Mark note as read once rendered/viewed
+        if (!n.isRead) {
+          markNoteRead(n.id);
+          card.innerHTML += `<div class="unread-indicator"></div>`;
+        }
+
+        card.innerHTML += `
+          <div class="flex justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+              <span class="badge badge-${color}">${n.kategori.toUpperCase()}</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">${formatDate(n.tanggal)}</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Ditulis oleh: <strong>Bu Sari</strong></div>
+          </div>
+          <p style="font-size: 0.92rem; line-height: 1.6; color: var(--text-primary); white-space: pre-line; margin-top: 6px;">${n.isi}</p>
+        `;
+        container.appendChild(card);
+      });
+
+      // Recalculate indicators
+      updateUnreadNotifBadge();
+    }
+  </script>
+</body>
+</html>

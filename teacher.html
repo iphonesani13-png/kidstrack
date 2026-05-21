@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KidsTrack — Dashboard Guru</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Custom style overrides/additions for teacher dashboard */
+    .student-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .student-item:hover, .student-item.active {
+      background: var(--bg-glass-strong);
+      border-color: var(--clr-primary);
+    }
+    .student-item.active {
+      box-shadow: 0 0 15px rgba(124,111,247,0.15);
+    }
+    .student-list-container {
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .grid-dashboard {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .grid-dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    .teacher-profile {
+      margin-top: auto;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .teacher-profile-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .teacher-profile-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .teacher-profile-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .btn-logout {
+      color: var(--clr-coral);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity var(--transition);
+    }
+    .btn-logout:hover {
+      opacity: 0.8;
+    }
+    /* Module Card */
+    .module-card {
+      background: var(--grad-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+    }
+    /* Grid checklist absensi */
+    .absensi-bulk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .absensi-bulk-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-glass);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .absensi-options {
+      display: flex;
+      gap: 6px;
+    }
+    .absensi-opt-btn {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg-glass);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .absensi-opt-btn.active.hadir { background: var(--clr-mint); color: #fff; border-color: var(--clr-mint); }
+    .absensi-opt-btn.active.izin { background: var(--clr-amber); color: #fff; border-color: var(--clr-amber); }
+    .absensi-opt-btn.active.sakit { background: var(--clr-sky); color: #fff; border-color: var(--clr-sky); }
+    .absensi-opt-btn.active.alpha { background: var(--clr-coral); color: #fff; border-color: var(--clr-coral); }
+  </style>
+</head>
+<body>
+  <div class="bg-ambient"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🌟</div>
+      <span class="sidebar-logo-text">KidsTrack</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Menu Utama</div>
+      <div class="nav-item active" onclick="switchMainTab('students')">
+        <span class="nav-item-icon">🧒</span>
+        <span>Kelola Murid</span>
+      </div>
+      <div class="nav-item" onclick="switchMainTab('absensi-bulk')">
+        <span class="nav-item-icon">📅</span>
+        <span>Absensi Harian</span>
+      </div>
+    </nav>
+
+    <!-- Teacher Profile Info -->
+    <div class="teacher-profile" id="teacher-profile-box">
+      <div class="avatar-placeholder" id="teacher-avatar" style="width: 36px; height: 36px; background: var(--clr-primary);">T</div>
+      <div class="teacher-profile-info">
+        <div class="teacher-profile-name" id="teacher-name">Nama Guru</div>
+        <div class="teacher-profile-role">Guru Pengajar</div>
+      </div>
+      <button class="btn-logout" onclick="handleLogout()" title="Keluar">🚪</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="main-title">Kelola Murid</h1>
+        <p class="page-subtitle" id="main-subtitle">Pilih murid untuk melihat dan memperbarui perkembangan belajarnya.</p>
+      </div>
+      <div id="header-actions">
+        <button class="btn btn-primary" onclick="openAddStudentModal()">➕ Tambah Murid</button>
+      </div>
+    </header>
+
+    <!-- SECTION 1: MANAGE STUDENTS -->
+    <div id="section-students" class="grid-dashboard fade-in">
+      <!-- Left column: Student list -->
+      <div class="module-card">
+        <div class="section-header">
+          <span class="section-title">🧒 Daftar Murid</span>
+          <span class="badge badge-primary" id="student-count">0 Murid</span>
+        </div>
+        <div class="student-list-container stagger-children" id="student-list">
+          <!-- Dynamic students -->
+        </div>
+      </div>
+
+      <!-- Right column: Selected Student Details & Logging -->
+      <div class="flex flex-col gap-6">
+        <!-- Student Detail Profile Info -->
+        <div class="glass-card" style="padding: 24px;" id="detail-card-placeholder">
+          <div class="empty-state">
+            <span class="empty-state-icon">👈</span>
+            <div class="empty-state-text" style="font-size: 1rem; font-weight: 600; color: var(--text-primary);">Pilih Murid Terlebih Dahulu</div>
+            <div class="empty-state-text">Silakan klik salah satu nama murid di panel kiri untuk mulai mengelola perkembangan.</div>
+          </div>
+        </div>
+
+        <div id="detail-card-content" class="flex flex-col gap-6" style="display: none;">
+          <!-- Profile Card -->
+          <div class="glass-card" style="padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+            <div class="flex items-center gap-4">
+              <span id="det-avatar" style="font-size: 3rem; background: var(--bg-glass); width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">🧒</span>
+              <div>
+                <h2 class="page-title" id="det-name" style="font-size: 1.4rem; margin-bottom: 4px;">Arif Pratama</h2>
+                <div class="flex items-center gap-4">
+                  <span class="badge badge-primary" id="det-kelas">Kelas A</span>
+                  <span class="badge badge-sky" id="det-usia">7 Tahun</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <button class="btn btn-ghost btn-sm" onclick="openEditStudentModal()">✏️ Edit Profil</button>
+            </div>
+          </div>
+
+          <!-- Tabs for Student Operations -->
+          <div class="tabs">
+            <button class="tab-btn active" id="tab-btn-absensi" onclick="switchStudentTab('absensi')">📅 Absensi</button>
+            <button class="tab-btn" id="tab-btn-tugas" onclick="switchStudentTab('tugas')">📋 Tugas & PR</button>
+            <button class="tab-btn" id="tab-btn-catatan" onclick="switchStudentTab('catatan')">💬 Catatan Guru</button>
+            <button class="tab-btn" id="tab-btn-milestone" onclick="switchStudentTab('milestone')">🏆 Milestone</button>
+          </div>
+
+          <!-- TAB: ABSENSI -->
+          <div id="tab-content-absensi" class="module-card fade-in">
+            <div class="section-header">
+              <span class="section-title">📅 Riwayat & Pencatatan Absensi</span>
+              <button class="btn btn-primary btn-sm" onclick="openMarkAttendanceModal()">✏️ Catat Absen</button>
+            </div>
+            
+            <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 24px;">
+              <div class="stat-card primary" style="padding: 16px;">
+                <div class="stat-value" id="det-att-pct">0%</div>
+                <div class="stat-label">Persentase Kehadiran</div>
+              </div>
+              <div class="stat-card" style="padding: 16px; border: none; background: var(--bg-glass); display: flex; justify-content: space-around; align-items: center;">
+                <div class="text-center" style="text-align: center;">
+                  <div class="stat-value" id="det-att-hadir" style="font-size: 1.4rem; color: var(--clr-mint);">0</div>
+                  <div class="stat-label">Hadir</div>
+                </div>
+                <div class="text-center" style="text-align: center;">
+                  <div class="stat-value" id="det-att-izin" style="font-size: 1.4rem; color: var(--clr-amber);">0</div>
+                  <div class="stat-label">Izin</div>
+                </div>
+                <div class="text-center" style="text-align: center;">
+                  <div class="stat-value" id="det-att-sakit" style="font-size: 1.4rem; color: var(--clr-sky);">0</div>
+                  <div class="stat-label">Sakit</div>
+                </div>
+                <div class="text-center" style="text-align: center;">
+                  <div class="stat-value" id="det-att-alpha" style="font-size: 1.4rem; color: var(--clr-coral);">0</div>
+                  <div class="stat-label">Alpha</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Attendance calendar display -->
+            <div class="calendar-grid" id="attendance-calendar">
+              <!-- Calendar days will be generated dynamically -->
+            </div>
+            <div class="flex gap-4" style="margin-top: 16px; font-size: 0.78rem; justify-content: center; opacity: 0.7;">
+              <span class="flex items-center gap-4"><span style="background: var(--clr-mint-light); color: var(--clr-mint); padding: 2px 6px; border-radius: 4px; font-weight: bold;">H</span> Hadir</span>
+              <span class="flex items-center gap-4"><span style="background: var(--clr-amber-light); color: var(--clr-amber); padding: 2px 6px; border-radius: 4px; font-weight: bold;">I</span> Izin</span>
+              <span class="flex items-center gap-4"><span style="background: var(--clr-sky-light); color: var(--clr-sky); padding: 2px 6px; border-radius: 4px; font-weight: bold;">S</span> Sakit</span>
+              <span class="flex items-center gap-4"><span style="background: var(--clr-coral-light); color: var(--clr-coral); padding: 2px 6px; border-radius: 4px; font-weight: bold;">A</span> Alpha</span>
+            </div>
+          </div>
+
+          <!-- TAB: TUGAS & PR -->
+          <div id="tab-content-tugas" class="module-card fade-in" style="display: none;">
+            <div class="section-header">
+              <span class="section-title">📋 Daftar Tugas / Pekerjaan Rumah</span>
+              <button class="btn btn-primary btn-sm" onclick="openAddTaskModal()">➕ Tambah Tugas</button>
+            </div>
+            <div class="stagger-children" id="tasks-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Tasks will be listed dynamically -->
+            </div>
+          </div>
+
+          <!-- TAB: CATATAN GURU -->
+          <div id="tab-content-catatan" class="module-card fade-in" style="display: none;">
+            <div class="section-header">
+              <span class="section-title">💬 Catatan Perkembangan Anak</span>
+              <button class="btn btn-primary btn-sm" onclick="openAddNoteModal()">➕ Buat Catatan</button>
+            </div>
+            <div class="stagger-children" id="notes-list" style="display: flex; flex-direction: column; gap: 14px;">
+              <!-- Notes will be listed dynamically -->
+            </div>
+          </div>
+
+          <!-- TAB: MILESTONE -->
+          <div id="tab-content-milestone" class="module-card fade-in" style="display: none;">
+            <div class="section-header">
+              <span class="section-title">🏆 Milestone & Badge Murid</span>
+              <button class="btn btn-primary btn-sm" onclick="openAwardBadgeModal()">🎖️ Beri Badge / Milestone</button>
+            </div>
+            <div class="data-grid data-grid-2 stagger-children" id="milestones-grid">
+              <!-- Milestones/badges earned -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: BULK ATTENDANCE DAILY -->
+    <div id="section-absensi-bulk" class="module-card fade-in" style="display: none;">
+      <div class="section-header" style="margin-bottom: 24px;">
+        <div>
+          <h2 class="section-title" style="font-size: 1.2rem;">📅 Absensi Kelas Harian</h2>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">Pilih tanggal dan tandai kehadiran seluruh murid di kelas sekaligus.</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <label class="form-label" style="margin: 0;" for="bulk-date-input">Tanggal:</label>
+          <input class="form-input" style="width: 160px; padding: 8px 12px;" type="date" id="bulk-date-input" onchange="loadBulkAttendance()">
+        </div>
+      </div>
+
+      <div class="absensi-bulk-list" id="bulk-attendance-list">
+        <!-- Generated dynamic attendance rows -->
+      </div>
+
+      <div class="flex justify-between items-center" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Data akan tersimpan secara otomatis saat Anda mengubah status kehadiran.</span>
+        <button class="btn btn-mint" onclick="saveBulkAttendanceAll()">💾 Simpan Semua</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- =============================================
+       MODALS
+       ============================================= -->
+
+  <!-- Modal: Tambah Murid -->
+  <div class="modal-overlay" id="add-student-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Murid Baru</h3>
+        <button class="modal-close" onclick="closeModal('add-student-modal')">✕</button>
+      </div>
+      <form onsubmit="handleAddStudent(event)">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="add-student-name">Nama Lengkap Murid</label>
+            <input class="form-input" id="add-student-name" type="text" placeholder="Masukkan nama murid" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-student-kelas">Kelas / Group</label>
+            <select class="form-input form-select" id="add-student-kelas">
+              <option value="Kelas A">Kelas A</option>
+              <option value="Kelas B">Kelas B</option>
+              <option value="Kelas C">Kelas C</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-student-usia">Usia (Tahun)</label>
+            <input class="form-input" id="add-student-usia" type="number" min="3" max="18" value="7" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-student-avatar">Emoji Avatar</label>
+            <select class="form-input form-select" id="add-student-avatar">
+              <option value="🧒">🧒 Anak Laki-laki</option>
+              <option value="👧">👧 Anak Perempuan</option>
+              <option value="👶">👶 Balita</option>
+              <option value="🦁">🦁 Singa Ceria</option>
+              <option value="🦄">🦄 Unicorn Kreatif</option>
+              <option value="🐼">🐼 Panda Pintar</option>
+            </select>
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('add-student-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Tambah Murid</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Murid -->
+  <div class="modal-overlay" id="edit-student-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Profil Murid</h3>
+        <button class="modal-close" onclick="closeModal('edit-student-modal')">✕</button>
+      </div>
+      <form onsubmit="handleEditStudent(event)">
+        <input type="hidden" id="edit-student-id">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="edit-student-name">Nama Lengkap Murid</label>
+            <input class="form-input" id="edit-student-name" type="text" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-student-kelas">Kelas / Group</label>
+            <select class="form-input form-select" id="edit-student-kelas">
+              <option value="Kelas A">Kelas A</option>
+              <option value="Kelas B">Kelas B</option>
+              <option value="Kelas C">Kelas C</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-student-usia">Usia (Tahun)</label>
+            <input class="form-input" id="edit-student-usia" type="number" min="3" max="18" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-student-avatar">Emoji Avatar</label>
+            <select class="form-input form-select" id="edit-student-avatar">
+              <option value="🧒">🧒 Anak Laki-laki</option>
+              <option value="👧">👧 Anak Perempuan</option>
+              <option value="👶">👶 Balita</option>
+              <option value="🦁">🦁 Singa Ceria</option>
+              <option value="🦄">🦄 Unicorn Kreatif</option>
+              <option value="🐼">🐼 Panda Pintar</option>
+            </select>
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('edit-student-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Simpan Perubahan</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Catat Absen Individu -->
+  <div class="modal-overlay" id="mark-attendance-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Tandai Absensi</h3>
+        <button class="modal-close" onclick="closeModal('mark-attendance-modal')">✕</button>
+      </div>
+      <form onsubmit="handleMarkAttendance(event)">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="att-date-input">Tanggal</label>
+            <input class="form-input" id="att-date-input" type="date" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status Kehadiran</label>
+            <div class="absensi-options" style="width: 100%; display: grid; grid-template-columns: repeat(4, 1fr);">
+              <div class="absensi-opt-btn active hadir" id="indiv-att-hadir" onclick="selectIndivAtt('hadir')" style="text-align: center;">Hadir</div>
+              <div class="absensi-opt-btn izin" id="indiv-att-izin" onclick="selectIndivAtt('izin')" style="text-align: center;">Izin</div>
+              <div class="absensi-opt-btn sakit" id="indiv-att-sakit" onclick="selectIndivAtt('sakit')" style="text-align: center;">Sakit</div>
+              <div class="absensi-opt-btn alpha" id="indiv-att-alpha" onclick="selectIndivAtt('alpha')" style="text-align: center;">Alpha</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="att-notes-input">Catatan Tambahan (Opsional)</label>
+            <input class="form-input" id="att-notes-input" type="text" placeholder="Misal: 'Izin bepergian', 'Demam'">
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('mark-attendance-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Simpan Absensi</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Tugas -->
+  <div class="modal-overlay" id="add-task-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Berikan Tugas / PR Baru</h3>
+        <button class="modal-close" onclick="closeModal('add-task-modal')">✕</button>
+      </div>
+      <form onsubmit="handleAddTask(event)">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="task-title-input">Judul Tugas / Deskripsi Aktivitas</label>
+            <input class="form-input" id="task-title-input" type="text" placeholder="Misal: Latihan Berhitung, Membaca Bab 3" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-mapel-input">Mata Pelajaran / Bidang</label>
+            <select class="form-input form-select" id="task-mapel-input">
+              <option value="Seni">Seni & Kreativitas</option>
+              <option value="Matematika">Matematika</option>
+              <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+              <option value="Agama">Pendidikan Agama</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-due-input">Tenggat Waktu (Due Date)</label>
+            <input class="form-input" id="task-due-input" type="date" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-status-input">Status Awal</label>
+            <select class="form-input form-select" id="task-status-input">
+              <option value="dalam_proses">Dalam Proses</option>
+              <option value="selesai">Selesai</option>
+              <option value="belum_dikumpul">Belum Dikumpul</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-notes-input">Catatan / Evaluasi Guru (Opsional)</label>
+            <input class="form-input" id="task-notes-input" type="text" placeholder="Misal: 'Hebat, rapi sekali!'">
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('add-task-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Kirim Tugas</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Tambah Catatan -->
+  <div class="modal-overlay" id="add-note-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Buat Catatan Perkembangan</h3>
+        <button class="modal-close" onclick="closeModal('add-note-modal')">✕</button>
+      </div>
+      <form onsubmit="handleAddNote(event)">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="note-cat-input">Kategori Laporan</label>
+            <select class="form-input form-select" id="note-cat-input">
+              <option value="positif">👍 Capaian Positif / Perilaku Baik</option>
+              <option value="perhatian">⚠️ Butuh Perhatian / Perlu Bimbingan</option>
+              <option value="info">ℹ️ Informasi Umum / Pengumuman</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note-content-input">Isi Catatan</label>
+            <textarea class="form-input form-textarea" id="note-content-input" placeholder="Tuliskan catatan secara spesifik dan membangun..." required></textarea>
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('add-note-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Kirim Catatan</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Beri Milestone -->
+  <div class="modal-overlay" id="award-badge-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Berikan Badge / Penghargaan</h3>
+        <button class="modal-close" onclick="closeModal('award-badge-modal')">✕</button>
+      </div>
+      <form onsubmit="handleAwardMilestone(event)">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label" for="badge-select-input">Pilih Milestone / Penghargaan</label>
+            <select class="form-input form-select" id="badge-select-input">
+              <!-- Render templates -->
+            </select>
+          </div>
+          <div class="flex justify-between gap-4" style="margin-top: 12px;">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('award-badge-modal')" style="flex: 1; justify-content: center;">Batal</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Berikan</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/charts.js"></script>
+  <script>
+    // Global State
+    let currentUser = null;
+    let selectedStudentId = null;
+    let currentStudentTab = 'absensi';
+    let currentMainSection = 'students';
+    let selectedIndivAttStatus = 'hadir';
+
+    // Verify authentication
+    document.addEventListener("DOMContentLoaded", () => {
+      currentUser = getCurrentUser();
+      if (!currentUser || currentUser.role !== 'guru') {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Display user info
+      document.getElementById('teacher-name').textContent = currentUser.name;
+      document.getElementById('teacher-avatar').textContent = getInitials(currentUser.name);
+
+      // Set input dates to today
+      document.getElementById('bulk-date-input').value = todayStr();
+      document.getElementById('att-date-input').value = todayStr();
+      document.getElementById('task-due-input').value = todayStr();
+
+      // Render initial view
+      loadStudentsList();
+      loadBulkAttendance();
+    });
+
+    // Custom Toast Notification System
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span style="font-size: 1.2rem;">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.35s ease forwards';
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+    }
+
+    // Modal Helpers
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // Navigation sections
+    function switchMainTab(section) {
+      currentMainSection = section;
+      const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+      
+      // Update sidebar nav active style
+      navItems.forEach(item => item.classList.remove('active'));
+      const idx = section === 'students' ? 0 : 1;
+      navItems[idx].classList.add('active');
+
+      // Update content visibility
+      document.getElementById('section-students').style.display = section === 'students' ? 'grid' : 'none';
+      document.getElementById('section-absensi-bulk').style.display = section === 'absensi-bulk' ? 'block' : 'none';
+
+      // Update headers
+      if (section === 'students') {
+        document.getElementById('main-title').textContent = 'Kelola Murid';
+        document.getElementById('main-subtitle').textContent = 'Pilih murid untuk melihat dan memperbarui perkembangan belajarnya.';
+        document.getElementById('header-actions').style.display = 'block';
+      } else {
+        document.getElementById('main-title').textContent = 'Absensi Kelas Harian';
+        document.getElementById('main-subtitle').textContent = 'Input kehadiran semua anak hari ini atau tanggal tertentu sekaligus.';
+        document.getElementById('header-actions').style.display = 'none';
+        loadBulkAttendance();
+      }
+    }
+
+    // Tab switches for selected student
+    function switchStudentTab(tab) {
+      currentStudentTab = tab;
+      const tabs = document.querySelectorAll('.tabs .tab-btn');
+      tabs.forEach(t => t.classList.remove('active'));
+      
+      document.getElementById(`tab-btn-${tab}`).classList.add('active');
+
+      document.getElementById('tab-content-absensi').style.display = tab === 'absensi' ? 'block' : 'none';
+      document.getElementById('tab-content-tugas').style.display = tab === 'tugas' ? 'block' : 'none';
+      document.getElementById('tab-content-catatan').style.display = tab === 'catatan' ? 'block' : 'none';
+      document.getElementById('tab-content-milestone').style.display = tab === 'milestone' ? 'block' : 'none';
+
+      if (selectedStudentId) {
+        if (tab === 'absensi') loadStudentAttendanceTab(selectedStudentId);
+        else if (tab === 'tugas') loadStudentTasksTab(selectedStudentId);
+        else if (tab === 'catatan') loadStudentNotesTab(selectedStudentId);
+        else if (tab === 'milestone') loadStudentMilestonesTab(selectedStudentId);
+      }
+    }
+
+    // =============================================
+    // STUDENT LOGIC
+    // =============================================
+
+    function loadStudentsList() {
+      const listEl = document.getElementById('student-list');
+      listEl.innerHTML = '';
+      
+      const students = getStudents();
+      document.getElementById('student-count').textContent = `${students.length} Murid`;
+
+      if (students.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-text">Belum ada murid terdaftar</div>
+          </div>
+        `;
+        return;
+      }
+
+      students.forEach(st => {
+        const item = document.createElement('div');
+        item.className = `student-item ${selectedStudentId === st.id ? 'active' : ''}`;
+        item.onclick = () => selectStudent(st.id);
+        item.innerHTML = `
+          <div class="flex items-center gap-4">
+            <span style="font-size: 1.8rem;">${st.avatar || '🧒'}</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;">${st.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${st.kelas}</div>
+            </div>
+          </div>
+          <span style="font-size: 1.1rem; opacity: 0.5;">❯</span>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function selectStudent(id) {
+      selectedStudentId = id;
+      
+      // Update list active styling
+      const items = document.querySelectorAll('.student-item');
+      const students = getStudents();
+      const idx = students.findIndex(s => s.id === id);
+      items.forEach((item, index) => {
+        item.classList.toggle('active', index === idx);
+      });
+
+      // Show detail panel
+      document.getElementById('detail-card-placeholder').style.display = 'none';
+      document.getElementById('detail-card-content').style.display = 'flex';
+
+      // Load specific student data details
+      const student = getStudentById(id);
+      document.getElementById('det-name').textContent = student.name;
+      document.getElementById('det-avatar').textContent = student.avatar || '🧒';
+      document.getElementById('det-kelas').textContent = student.kelas;
+      document.getElementById('det-usia').textContent = `${student.usia} Tahun`;
+
+      // Update current open tab content
+      switchStudentTab(currentStudentTab);
+    }
+
+    // Add Student
+    function openAddStudentModal() {
+      document.getElementById('add-student-name').value = '';
+      openModal('add-student-modal');
+    }
+
+    function handleAddStudent(e) {
+      e.preventDefault();
+      const name = document.getElementById('add-student-name').value.trim();
+      const kelas = document.getElementById('add-student-kelas').value;
+      const usia = parseInt(document.getElementById('add-student-usia').value);
+      const avatar = document.getElementById('add-student-avatar').value;
+
+      if (!name) return;
+
+      const newStudent = addStudent({ name, kelas, usia, avatar, parentId: null });
+      closeModal('add-student-modal');
+      loadStudentsList();
+      selectStudent(newStudent.id);
+      showToast(`Murid "${name}" berhasil ditambahkan!`);
+    }
+
+    // Edit Student
+    function openEditStudentModal() {
+      const st = getStudentById(selectedStudentId);
+      document.getElementById('edit-student-id').value = st.id;
+      document.getElementById('edit-student-name').value = st.name;
+      document.getElementById('edit-student-kelas').value = st.kelas;
+      document.getElementById('edit-student-usia').value = st.usia;
+      document.getElementById('edit-student-avatar').value = st.avatar || '🧒';
+      openModal('edit-student-modal');
+    }
+
+    function handleEditStudent(e) {
+      e.preventDefault();
+      const id = document.getElementById('edit-student-id').value;
+      const name = document.getElementById('edit-student-name').value.trim();
+      const kelas = document.getElementById('edit-student-kelas').value;
+      const usia = parseInt(document.getElementById('edit-student-usia').value);
+      const avatar = document.getElementById('edit-student-avatar').value;
+
+      updateStudent(id, { name, kelas, usia, avatar });
+      closeModal('edit-student-modal');
+      loadStudentsList();
+      selectStudent(id);
+      showToast('Profil murid berhasil diperbarui');
+    }
+
+    // =============================================
+    // ABSENSI LOGIC
+    // =============================================
+    function loadStudentAttendanceTab(studentId) {
+      const summary = getAttendanceSummary(studentId);
+      
+      // Update stats UI
+      document.getElementById('det-att-pct').textContent = `${summary.pct}%`;
+      document.getElementById('det-att-hadir').textContent = summary.hadir;
+      document.getElementById('det-att-izin').textContent = summary.izin;
+      document.getElementById('det-att-sakit').textContent = summary.sakit;
+      document.getElementById('det-att-alpha').textContent = summary.alpha;
+
+      // Draw interactive calendar
+      const calGrid = document.getElementById('attendance-calendar');
+      calGrid.innerHTML = '';
+
+      // Set headers
+      const daysShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      daysShort.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'calendar-day-header';
+        h.textContent = d;
+        calGrid.appendChild(h);
+      });
+
+      // We render the current month (May 2026 for this application demo logic)
+      const year = 2026;
+      const month = 4; // May (0-indexed)
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      // Empty slot offset
+      for (let i = 0; i < firstDay; i++) {
+        const em = document.createElement('div');
+        em.className = 'calendar-day empty';
+        calGrid.appendChild(em);
+      }
+
+      const rawAtt = getAttendance(studentId);
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const attItem = rawAtt.find(a => a.tanggal === dateStr);
+        const dayEl = document.createElement('div');
+        dayEl.className = 'calendar-day';
+        dayEl.textContent = day;
+
+        const date = new Date(year, month, day);
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+        if (isWeekend) {
+          dayEl.style.opacity = '0.35';
+          dayEl.style.cursor = 'default';
+        }
+
+        if (attItem) {
+          dayEl.classList.add(attItem.status);
+          dayEl.title = `Status: ${attItem.status.toUpperCase()} ${attItem.catatan ? `(${attItem.catatan})` : ''}`;
+        }
+
+        // Today highlight
+        const today = new Date();
+        if (today.getFullYear() === year && today.getMonth() === month && today.getDate() === day) {
+          dayEl.classList.add('today');
+        }
+
+        dayEl.onclick = () => {
+          if (isWeekend) return;
+          document.getElementById('att-date-input').value = dateStr;
+          selectIndivAtt(attItem ? attItem.status : 'hadir');
+          document.getElementById('att-notes-input').value = attItem ? attItem.catatan : '';
+          openModal('mark-attendance-modal');
+        };
+
+        calGrid.appendChild(dayEl);
+      }
+    }
+
+    function selectIndivAtt(status) {
+      selectedIndivAttStatus = status;
+      const btns = ['hadir', 'izin', 'sakit', 'alpha'];
+      btns.forEach(b => {
+        document.getElementById(`indiv-att-${b}`).classList.toggle('active', b === status);
+      });
+    }
+
+    function openMarkAttendanceModal() {
+      document.getElementById('att-date-input').value = todayStr();
+      selectIndivAtt('hadir');
+      document.getElementById('att-notes-input').value = '';
+      openModal('mark-attendance-modal');
+    }
+
+    function handleMarkAttendance(e) {
+      e.preventDefault();
+      const tanggal = document.getElementById('att-date-input').value;
+      const catatan = document.getElementById('att-notes-input').value.trim();
+
+      setAttendance(selectedStudentId, tanggal, selectedIndivAttStatus, catatan);
+      closeModal('mark-attendance-modal');
+      loadStudentAttendanceTab(selectedStudentId);
+      showToast('Kehadiran murid diperbarui');
+    }
+
+    // =============================================
+    // TASKS LOGIC
+    // =============================================
+    function loadStudentTasksTab(studentId) {
+      const container = document.getElementById('tasks-list');
+      container.innerHTML = '';
+      const tasks = getTasks(studentId);
+
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-text">Belum ada tugas diberikan</div>
+          </div>
+        `;
+        return;
+      }
+
+      tasks.forEach(t => {
+        const badge = getStatusBadge(t.status);
+        const row = document.createElement('div');
+        row.className = 'glass-card flex flex-col gap-4';
+        row.style.padding = '18px';
+        row.innerHTML = `
+          <div class="flex justify-between items-start gap-4">
+            <div>
+              <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${t.judul}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Mapel: <strong>${t.mapel}</strong> | Batas Waktu: ${formatDate(t.dueDate)}</div>
+            </div>
+            <span class="badge ${badge.cls}">${badge.label}</span>
+          </div>
+          
+          ${t.catatan ? `<div style="font-size: 0.82rem; color: var(--clr-primary-light); background: rgba(124, 111, 247, 0.08); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--clr-primary);">📝 ${t.catatan}</div>` : ''}
+
+          <div class="flex gap-4 justify-between items-center" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Ubah Status:</span>
+              <select class="form-input form-select" style="padding: 4px 28px 4px 10px; font-size: 0.78rem; width: 140px; background-color: var(--bg-glass);" onchange="updateTaskStatus('${t.id}', this.value)">
+                <option value="dalam_proses" ${t.status === 'dalam_proses' ? 'selected' : ''}>Dalam Proses</option>
+                <option value="selesai" ${t.status === 'selesai' ? 'selected' : ''}>Selesai</option>
+                <option value="terlambat" ${t.status === 'terlambat' ? 'selected' : ''}>Terlambat</option>
+                <option value="belum_dikumpul" ${t.status === 'belum_dikumpul' ? 'selected' : ''}>Belum Dikumpul</option>
+              </select>
+            </div>
+            <div class="flex gap-4">
+              <button class="btn btn-ghost btn-sm" onclick="editTaskNotes('${t.id}', '${t.catatan}')" style="padding: 6px 12px; font-size: 0.72rem;">✏️ Catatan Nilai</button>
+              <button class="btn btn-coral btn-sm" onclick="handleDeleteTask('${t.id}')" style="padding: 6px 12px; font-size: 0.72rem; background: none; border: 1px solid var(--clr-coral); color: var(--clr-coral);">Hapus</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function openAddTaskModal() {
+      document.getElementById('task-title-input').value = '';
+      document.getElementById('task-due-input').value = todayStr();
+      document.getElementById('task-notes-input').value = '';
+      openModal('add-task-modal');
+    }
+
+    function handleAddTask(e) {
+      e.preventDefault();
+      const judul = document.getElementById('task-title-input').value.trim();
+      const mapel = document.getElementById('task-mapel-input').value;
+      const dueDate = document.getElementById('task-due-input').value;
+      const status = document.getElementById('task-status-input').value;
+      const catatan = document.getElementById('task-notes-input').value.trim();
+
+      addTask({
+        studentId: selectedStudentId,
+        judul,
+        mapel,
+        status,
+        dueDate,
+        submittedDate: status === 'selesai' ? todayStr() : null,
+        catatan
+      });
+
+      closeModal('add-task-modal');
+      loadStudentTasksTab(selectedStudentId);
+      showToast('Tugas berhasil ditambahkan');
+    }
+
+    function updateTaskStatus(taskId, newStatus) {
+      const updateData = { status: newStatus };
+      if (newStatus === 'selesai') {
+        updateData.submittedDate = todayStr();
+      }
+      updateTask(taskId, updateData);
+      loadStudentTasksTab(selectedStudentId);
+      showToast('Status tugas berhasil diubah');
+    }
+
+    function editTaskNotes(taskId, currentNotes) {
+      const note = prompt("Edit Catatan Nilai / Evaluasi Tugas:", currentNotes);
+      if (note !== null) {
+        updateTask(taskId, { catatan: note.trim() });
+        loadStudentTasksTab(selectedStudentId);
+        showToast('Catatan nilai diperbarui');
+      }
+    }
+
+    function handleDeleteTask(id) {
+      if (confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
+        deleteTask(id);
+        loadStudentTasksTab(selectedStudentId);
+        showToast('Tugas berhasil dihapus');
+      }
+    }
+
+    // =============================================
+    // NOTES LOGIC
+    // =============================================
+    function loadStudentNotesTab(studentId) {
+      const container = document.getElementById('notes-list');
+      container.innerHTML = '';
+      const notes = getNotes(studentId);
+
+      if (notes.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <div class="empty-state-text">Belum ada catatan tertulis</div>
+          </div>
+        `;
+        return;
+      }
+
+      notes.forEach(n => {
+        const color = getKategoriColor(n.kategori);
+        const card = document.createElement('div');
+        card.className = `glass-card`;
+        card.style.padding = '18px';
+        card.style.borderLeft = `4px solid var(--clr-${color})`;
+        card.innerHTML = `
+          <div class="flex justify-between items-center gap-4" style="margin-bottom: 8px;">
+            <div class="flex items-center gap-4">
+              <span class="badge badge-${color}">${n.kategori.toUpperCase()}</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">${formatDate(n.tanggal)}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="handleDeleteNote('${n.id}')" style="padding: 4px 8px; border: none; font-size: 0.9rem;">🗑️</button>
+          </div>
+          <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-line;">${n.isi}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openAddNoteModal() {
+      document.getElementById('note-content-input').value = '';
+      openModal('add-note-modal');
+    }
+
+    function handleAddNote(e) {
+      e.preventDefault();
+      const kategori = document.getElementById('note-cat-input').value;
+      const isi = document.getElementById('note-content-input').value.trim();
+
+      addNote({
+        studentId: selectedStudentId,
+        guruId: currentUser.id,
+        tanggal: todayStr(),
+        kategori,
+        isi
+      });
+
+      closeModal('add-note-modal');
+      loadStudentNotesTab(selectedStudentId);
+      showToast('Catatan perkembangan baru berhasil dikirim');
+    }
+
+    function handleDeleteNote(id) {
+      if (confirm('Hapus catatan perkembangan ini?')) {
+        deleteNote(id);
+        loadStudentNotesTab(selectedStudentId);
+        showToast('Catatan telah dihapus');
+      }
+    }
+
+    // =============================================
+    // MILESTONES LOGIC
+    // =============================================
+    function loadStudentMilestonesTab(studentId) {
+      const container = document.getElementById('milestones-grid');
+      container.innerHTML = '';
+      const earned = getMilestones(studentId);
+      const templates = getAllMilestoneTemplates();
+
+      templates.forEach(t => {
+        const item = earned.find(e => e.judul === t.judul);
+        const card = document.createElement('div');
+        card.className = `achievement-item ${!item ? 'achievement-locked' : ''}`;
+        card.innerHTML = `
+          <div class="achievement-emoji">${t.emoji}</div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${t.judul}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
+              ${item ? `Diraih pada: ${formatDate(item.tanggal)}` : 'Belum Terbuka'}
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openAwardBadgeModal() {
+      const earned = getMilestones(selectedStudentId);
+      const templates = getAllMilestoneTemplates();
+      const select = document.getElementById('badge-select-input');
+      select.innerHTML = '';
+
+      // Only show badges that student has NOT earned yet
+      const unearned = templates.filter(t => !earned.some(e => e.judul === t.judul));
+
+      if (unearned.length === 0) {
+        select.innerHTML = `<option disabled>Semua penghargaan telah diraih!</option>`;
+      } else {
+        unearned.forEach(u => {
+          select.innerHTML += `<option value="${u.id}">${u.emoji} ${u.judul}</option>`;
+        });
+      }
+      openModal('award-badge-modal');
+    }
+
+    function handleAwardMilestone(e) {
+      e.preventDefault();
+      const badgeId = document.getElementById('badge-select-input').value;
+      if (!badgeId) return;
+
+      const templates = getAllMilestoneTemplates();
+      const target = templates.find(t => t.id === badgeId);
+
+      if (target) {
+        addMilestone({
+          studentId: selectedStudentId,
+          judul: target.judul,
+          emoji: target.emoji,
+          tanggal: todayStr(),
+          kategori: target.kategori
+        });
+        closeModal('award-badge-modal');
+        loadStudentMilestonesTab(selectedStudentId);
+        showToast(`Penghargaan "${target.judul}" berhasil diberikan! 🏆`);
+      }
+    }
+
+    // =============================================
+    // BULK ATTENDANCE LOGIC
+    // =============================================
+    const tempBulkData = {};
+
+    function loadBulkAttendance() {
+      const container = document.getElementById('bulk-attendance-list');
+      container.innerHTML = '';
+      
+      const tanggal = document.getElementById('bulk-date-input').value;
+      if (!tanggal) return;
+
+      const students = getStudents();
+      const atts = getAllAttendanceByDate(tanggal);
+
+      students.forEach(st => {
+        const existing = atts.find(a => a.studentId === st.id);
+        const status = existing ? existing.status : 'hadir';
+        
+        // Save initial temp state
+        tempBulkData[st.id] = { status, catatan: existing ? existing.catatan : '' };
+
+        const row = document.createElement('div');
+        row.className = 'absensi-bulk-row';
+        row.innerHTML = `
+          <div class="flex items-center gap-4">
+            <span style="font-size: 1.6rem;">${st.avatar || '🧒'}</span>
+            <div>
+              <div style="font-weight: 700; font-size: 0.92rem;">${st.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${st.kelas}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-6">
+            <input class="form-input" style="width: 180px; padding: 6px 12px; font-size: 0.8rem;" type="text" placeholder="Catatan (opsional)" value="${tempBulkData[st.id].catatan}" onchange="updateTempBulkNotes('${st.id}', this.value)">
+            <div class="absensi-options">
+              <button class="absensi-opt-btn ${status === 'hadir' ? 'active hadir' : ''}" onclick="updateTempBulkStatus(this, '${st.id}', 'hadir')">Hadir</button>
+              <button class="absensi-opt-btn ${status === 'izin' ? 'active izin' : ''}" onclick="updateTempBulkStatus(this, '${st.id}', 'izin')">Izin</button>
+              <button class="absensi-opt-btn ${status === 'sakit' ? 'active sakit' : ''}" onclick="updateTempBulkStatus(this, '${st.id}', 'sakit')">Sakit</button>
+              <button class="absensi-opt-btn ${status === 'alpha' ? 'active alpha' : ''}" onclick="updateTempBulkStatus(this, '${st.id}', 'alpha')">Alpha</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function updateTempBulkStatus(btn, studentId, status) {
+      tempBulkData[studentId].status = status;
+      
+      // Update UI siblings
+      const parent = btn.parentElement;
+      const btns = parent.querySelectorAll('.absensi-opt-btn');
+      btns.forEach(b => {
+        b.className = 'absensi-opt-btn'; // clear all active classes
+      });
+      btn.classList.add('active', status);
+
+      // Auto save on status toggle
+      const tanggal = document.getElementById('bulk-date-input').value;
+      setAttendance(studentId, tanggal, status, tempBulkData[studentId].catatan);
+    }
+
+    function updateTempBulkNotes(studentId, value) {
+      tempBulkData[studentId].catatan = value.trim();
+      
+      // Auto save on change
+      const tanggal = document.getElementById('bulk-date-input').value;
+      setAttendance(studentId, tanggal, tempBulkData[studentId].status, value.trim());
+    }
+
+    function saveBulkAttendanceAll() {
+      const tanggal = document.getElementById('bulk-date-input').value;
+      if (!tanggal) return;
+
+      Object.keys(tempBulkData).forEach(sid => {
+        setAttendance(sid, tanggal, tempBulkData[sid].status, tempBulkData[sid].catatan);
+      });
+
+      showToast('Semua data absensi berhasil disimpan!');
+    }
+
+    // Logout
+    function handleLogout() {
+      logout();
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
